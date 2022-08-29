@@ -32,7 +32,7 @@ static void log_error_if_nonzero(const char *message, int error_code) {
 }
 
 static void mqttEventHandler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
-    ESP_LOGD(__func__, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
+    ESP_LOGD(__func__, "Event dispatched from event loop base=%s, event_id=%ld", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
@@ -93,15 +93,23 @@ void mqttInit() {
     char lwt_topic[128] = {};
     sprintf(lwt_topic,"/esp/on/%s",s_mqtt_sn);
     esp_mqtt_client_config_t mqtt_cfg = {
-        .uri = s_mqtt_broker,
-        .username = s_mqtt_user,
-        .password = s_mqtt_pwd,
-        .lwt_topic = lwt_topic,                  /*!< LWT (Last Will and Testament) message topic (NULL by default) */
-        .lwt_msg = "off",                    /*!< LWT message (NULL by default) */
-        .lwt_qos = 1,                            /*!< LWT message qos */
-        .lwt_retain = 1,                         /*!< LWT retained message flag */
-        .lwt_msg_len = 3,
-        .keepalive = 60
+        .broker.address.uri = s_mqtt_broker,
+        .credentials = {
+            .username = s_mqtt_user,
+            .authentication = {
+                .password = s_mqtt_pwd 
+            }
+        },
+        .session = {
+            .last_will = {
+                .topic = lwt_topic,
+                .msg = "off",
+                .qos = 1,
+                .retain = 1,
+                .msg_len = 3,
+            },
+            .keepalive = 60
+        },
     };
     s_mqtt_handler = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
